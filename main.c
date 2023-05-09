@@ -44,8 +44,10 @@ int main(int argc, char* argv[]){
             printf("Password found: %s\n", password);
             break;
         }
-        if (iterations % 1000000 == 0){
-            printf("Iteration: %d\n", iterations);
+        if (iterations % 10000 == 0){
+            // printf("Iteration: %d\n", iterations);
+            system("clear");
+            printf("%% complete: %f\n", (float) iterations / MAX_ITERATIONS * 100);
         }
     }
     if (result == 0){
