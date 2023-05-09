@@ -8,15 +8,10 @@
 
 // TYPEDEFS
 
-typedef struct password_try
-{
-    char* password;
-    int last_char_index;
-}password_try;
-
 // PROTYPES
 int verify_zip_pass(const char* archive_path, const char* dest_path, const char* password);
-password_try* generate_password(password_try *pass_try, char* ascii_list, int ascii_list_size);
+char* generate_password(char* password, char* ascii_list, int ascii_list_size);
+int get_char_index(char* ascii_list, char c);
 
 
 
@@ -37,8 +32,8 @@ int main(int argc, char* argv[]){
         printf("Error opening ascii_list.txt\n");
         return 1;
     }
-    password_try* pass_try = NULL;
     int result;
+    char* password= NULL;
     // read ascii list
     read(fd, ascii_list, 93);
     if (close(fd) == -1){
@@ -52,13 +47,13 @@ int main(int argc, char* argv[]){
     // test password
     while (iterations < MAX_ITERATIONS){
         // generate password
-        pass_try = generate_password(pass_try, ascii_list, 93);
+        password = generate_password(password, ascii_list, 93);
         // verify password
-        printf("password%d: %s\n", iterations, pass_try->password);
-        result=verify_zip_pass(archive_path, "temp", pass_try->password);
+        printf("password%d: %s\n", iterations, password);
+        result=verify_zip_pass(archive_path, "temp", password);
         iterations++;
         if (result == 1){
-            printf("Password found: %s\n", pass_try->password);
+            printf("Password found: %s\n", password);
             break;
         }
     }
@@ -71,50 +66,43 @@ int main(int argc, char* argv[]){
     return 0;
 }
 
-password_try* generate_password(password_try *pass_try, char* ascii_list, int ascii_list_size){
-    if (pass_try==NULL){
-        password_try* new_try = (password_try*) malloc(sizeof(password_try));
-        new_try->password = (char*) malloc(sizeof(char) * 2);
-        new_try->password[0] = ascii_list[0];
-        new_try->password[1] = '\0';
-        new_try->last_char_index = 0;
-        return new_try;
+char* generate_password(char* password, char* ascii_list, int ascii_list_size){
+    if (password == NULL){
+        password = (char*) malloc(sizeof(char) * 2);
+        password[0] = ascii_list[0];
+        password[1] = '\0';
+        return password;
     }
-    char *password = pass_try->password;
-    // printf("last_pass=%s\n", password);
-    int last_char_index = pass_try->last_char_index;
-    
-    // if last char is not the last char in the ascii list
-    // get the next char in the ascii list
-    if (last_char_index < ascii_list_size-1){
-        // printf("old_char=%c\n", password[strlen(password)-1]);
-        password[strlen(password)-1] = ascii_list[last_char_index+1];
-        pass_try->password = password;
-        pass_try->last_char_index = last_char_index+1;
-        // printf("new_char=%c\n", ascii_list[last_char_index+1]);
-
-    }
-    // if last char is the last char in the ascii list
-    // add a new char to the password
-    else{
-        // set all previous chars to the first char in the ascii list
-        // or if its already the first char, set it to the next char
-        for (int i = 0; i < (int)strlen(password); i++){
-            if (password[i] == ascii_list[0]){
-                password[i] = ;
+    int password_size = strlen(password);
+    int last_char_index = get_char_index(ascii_list, password[password_size - 1]);
+    if (last_char_index == ascii_list_size - 1){
+        // last char is the last char in the ascii list
+        // set the previous char to the next in the ascii list
+        for (int i = password_size; i>=0; i--){
+            if (get_char_index(ascii_list, password[i]) == ascii_list_size){
+                // si el caracter anterior es el ultimo de la lista ascii
+                // lo ponemos como el primero y seguimos con el anterior
+                password[i] = ascii_list[0];
             }
             else{
-                password[i] = ascii_list[pass_try->last_char_index+1];
+                // si el caracter anterior no es el ultimo de la lista ascii
+                // incrementamos el caracter anterior
+                password[i] = ascii_list[get_char_index(ascii_list, password[i]) + 1];
                 break;
             }
         }
-        password = (char*) realloc(password, sizeof(char) * (strlen(password)+2));
-        password[strlen(password)] = ascii_list[0];
-        password[strlen(password)+1] = '\0';
-        pass_try->password = password;
-        pass_try->last_char_index = 0;
+        // add a new char to the password
+        password = (char*) realloc(password, sizeof(char) * (password_size + 2));
+        password[password_size] = ascii_list[0];
+        password[password_size + 1] = '\0';
+        return password;
     }
-    return pass_try;
+    else{
+        // last char is not the last char in the ascii list
+        // increment the last char
+        password[password_size - 1] = ascii_list[last_char_index + 1];
+        return password;
+    }
 }
 
 
@@ -173,3 +161,11 @@ int verify_zip_pass(const char* archive_path, const char *dest_path, const char*
     return 1; 
 }
 
+int get_char_index(char* ascii_list, char c){
+    for (int i = 0; i < (int)strlen(ascii_list); i++){
+        if (ascii_list[i] == c){
+            return i;
+        }
+    }
+    return -1;
+}
