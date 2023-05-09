@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.rmd": "rmd",
+        "fcntl.h": "c"
+    }
+}
