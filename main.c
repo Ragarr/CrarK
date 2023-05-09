@@ -45,10 +45,6 @@ int main(int argc, char* argv[]){
     for (int i = 0; i < atoi(argv[3]); i++){
         threads_starting_passwords[i] = get_password_from_iteration(iterations_per_thread * i);
     }
-    // print starting passwords
-    for (int i = 0; i < atoi(argv[3]); i++){
-        printf("Thread %d starting password: %s\n", i, threads_starting_passwords[i]);
-    }
     brute_force_args *args;
     args = (brute_force_args*) malloc(sizeof(brute_force_args) * atoi(argv[3]));
     for (int i = 0; i < atoi(argv[3]); i++){
@@ -58,16 +54,18 @@ int main(int argc, char* argv[]){
         args[i].thread_id = i;
         pthread_create(&threads[i], NULL, brute_force_from_to, (void*) &args[i]);
     }
-    while (1)
+    /*
+    while (global_progress<max_iterations-atoi(argv[3]))
     {
         system("clear");
+        global_progress = 0;
         for (int i = 0; i < atoi(argv[3]); i++){
-            printf("Thread %d progress: %f\n", i, local_progress[i]/ (double) iterations_per_thread);
-            global_progress += local_progress[i]/ (double) iterations_per_thread * 100;
+            printf("Thread %d progress: %d/%d\n", i, local_progress[i], iterations_per_thread);
+            global_progress += local_progress[i];
         };
-        printf("Global progress: %f\n", global_progress);
-        sleep(2);
-    }
+        printf("Global progress: %f/%d\n", global_progress, max_iterations);
+        usleep(50000);
+    }*/
     
 
     for (int i = 0; i < atoi(argv[3]); i++){
@@ -85,7 +83,7 @@ void *brute_force_from_to(void *args){
     int i = 0;
     int result;
     printf("Thread %d starting password: '%s'\n", args_struct->thread_id, password);
-    while (i<max_iterations){
+    while (local_progress[args_struct->thread_id]<max_iterations){
         password = generate_password(password);
         i++;
         // printf("Thread %d testing: %s\n", args_struct->thread_id, password);
@@ -98,6 +96,7 @@ void *brute_force_from_to(void *args){
             exit(0);
         }
     }
+    printf("Thread %d finished, last password tryed:%s\n", args_struct->thread_id, password);
     pthread_exit(NULL);
 }
 
