@@ -5,58 +5,124 @@
 # include <stdlib.h>
 #include <fcntl.h>
 # include <string.h>
+# include <pthread.h>
+# include <math.h>
+
+// GLOBALS
+pthread_mutex_t archive_mutex = PTHREAD_MUTEX_INITIALIZER;
+double global_progress = 0;
+int *local_progress;
 
 // TYPEDEFS
+typedef struct brute_force_args{
+    char *starting_pass;
+    int max_iterations;
+    char *archive_path;
+    int thread_id;
+} brute_force_args;
 
 // PROTYPES
 int verify_zip_pass(const char* archive_path, const char* dest_path, const char* password);
 char* generate_password(char* password);
 int get_char_index(char c);
 char get_char_from_index(int index);
-
-
+char *get_password_from_iteration(int iteration);
+void *brute_force_from_to(void *args);
 
 
 int main(int argc, char* argv[]){
-    // Check if the user has provided the correct number of arguments
-    if (argc != 3){
-        printf("Usage: %s <archive_path> <max_iterations>\n", argv[0]);
+    if (argc != 4){
+        printf("Usage: %s <archive_path> <max_len> <threads>\n", argv[0]);
         return 1;
     }
-    int iterations = 0;
-    char* archive_path = argv[1];
-    int MAX_ITERATIONS = atoi(argv[2]);
-    
-    int result;
-    char* password= NULL;
-    // el ascii va desde el 33 al 126
-    // create temp folder 
-    mkdir("temp", 0777);
-    // test password
-    while (iterations < MAX_ITERATIONS){
-        // generate password
-        password = generate_password(password);
-        // verify password
-        // printf("password%d: %s\n", iterations, password);
-        result=verify_zip_pass(archive_path, "temp", password);
-        iterations++;
-        if (result == 1){
-            printf("Password found: %s\n", password);
-            break;
-        }
-        if (iterations % 10000 == 0){
-            // printf("Iteration: %d\n", iterations);
-            system("clear");
-            printf("%% complete: %f\n", (float) iterations / MAX_ITERATIONS * 100);
-        }
-    }
-    if (result == 0){
-        printf("Password not found\n");
-    }
-    // delete temp folder with all files
-    system("rm -r temp");
+    pthread_t threads[atoi(argv[3])];
+    int max_iterations = pow(93, atoi(argv[2]));
+    int iterations_per_thread = max_iterations / atoi(argv[3]);
+    char **threads_starting_passwords;
+    threads_starting_passwords = (char**) malloc(sizeof(char*) * atoi(argv[3]));
 
+    local_progress = (int*) malloc(sizeof(int) * atoi(argv[3]));
+    for (int i = 0; i < atoi(argv[3]); i++){
+        threads_starting_passwords[i] = get_password_from_iteration(iterations_per_thread * i);
+    }
+    // print starting passwords
+    for (int i = 0; i < atoi(argv[3]); i++){
+        printf("Thread %d starting password: %s\n", i, threads_starting_passwords[i]);
+    }
+    brute_force_args *args;
+    args = (brute_force_args*) malloc(sizeof(brute_force_args) * atoi(argv[3]));
+    for (int i = 0; i < atoi(argv[3]); i++){
+        args[i].starting_pass = threads_starting_passwords[i];
+        args[i].max_iterations = iterations_per_thread;
+        args[i].archive_path = argv[1];
+        args[i].thread_id = i;
+        pthread_create(&threads[i], NULL, brute_force_from_to, (void*) &args[i]);
+    }
+    while (1)
+    {
+        system("clear");
+        for (int i = 0; i < atoi(argv[3]); i++){
+            printf("Thread %d progress: %f\n", i, local_progress[i]/ (double) iterations_per_thread);
+            global_progress += local_progress[i]/ (double) iterations_per_thread * 100;
+        };
+        printf("Global progress: %f\n", global_progress);
+        sleep(2);
+    }
+    
+
+    for (int i = 0; i < atoi(argv[3]); i++){
+        pthread_join(threads[i], NULL);
+    }
+    printf("Contraseña no encontrada\n");
     return 0;
+}
+
+void *brute_force_from_to(void *args){
+    brute_force_args *args_struct = (brute_force_args*) args;
+    char *password = args_struct->starting_pass;
+    int max_iterations = args_struct->max_iterations;
+    char * archive_path = args_struct->archive_path;
+    int i = 0;
+    int result;
+    printf("Thread %d starting password: '%s'\n", args_struct->thread_id, password);
+    while (i<max_iterations){
+        password = generate_password(password);
+        i++;
+        // printf("Thread %d testing: %s\n", args_struct->thread_id, password);
+        pthread_mutex_lock(&archive_mutex);
+        result = verify_zip_pass(archive_path, "temp", password);
+        pthread_mutex_unlock(&archive_mutex);
+        local_progress[args_struct->thread_id] += 1;
+        if (result == 1){
+            printf("Contraseña encontrada: %s", password);
+            exit(0);
+        }
+    }
+    pthread_exit(NULL);
+}
+
+char *get_password_from_iteration(int n){
+    int base = 93;
+    int i = 0;
+    int n2 = n;
+    while (n2 > 0){
+        n2 = n2 / base;
+        i++;
+    }
+    char *password = (char*) malloc(sizeof(char) * (i + 1));
+    password[i] = '\0';
+    i--;
+    while (n>0){
+        int remainder = n % base;
+        password[i] = get_char_from_index(remainder);
+        i--;
+        n = n / base;
+    }
+    if (password[0] == '\0'){
+        password[0] = get_char_from_index(0);
+    }
+    return password;
+    
 }
 
 char* generate_password(char* password){
@@ -72,6 +138,7 @@ char* generate_password(char* password){
         // last char is the last char in the ascii list
         // increment the char before the last char
         password = (char*) realloc(password, sizeof(char) * (password_size + 1));
+        // printf("Incrementing %dº char\n", password_size);
         password[password_size] = '\0';
         for (int i = password_size-1; i >= 0; i--){
             last_char_index = get_char_index(password[i]);
@@ -84,8 +151,9 @@ char* generate_password(char* password){
             }
         }
         // if we reach this point, we need to add a new char to the password
-        printf("Adding %dº char\n", password_size + 1);
+        // printf("Adding %dº char\n", password_size + 1);
         password = (char*) realloc(password, sizeof(char) * (password_size + 2));
+        // printf("Incrementing %dº char\n", password_size + 1);
         password[password_size + 1] = '\0';
         password[0] = get_char_from_index(0);
         for (int i = 1; i < password_size + 1; i++){
@@ -158,9 +226,9 @@ int verify_zip_pass(const char* archive_path, const char *dest_path, const char*
 }
 
 int get_char_index(char c){
-    return (int) c - 33;
+    return (int) (c - 33);
 }
 
 char get_char_from_index(int index){
-    return (char) index + 33;
+    return (char) (index + 33);
 }
