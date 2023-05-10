@@ -1,6 +1,8 @@
 {
     "files.associations": {
         "*.rmd": "rmd",
-        "fcntl.h": "c"
+        "fcntl.h": "c",
+        "password_utils.h": "c",
+        "stdio.h": "c"
     }
 }
