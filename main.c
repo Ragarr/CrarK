@@ -12,6 +12,7 @@
 // PROTOTYPES
 void *brute_force_from_to(void *args);
 int store_password(char* password);
+void print_progress(int max_iterations, int threads, int flag);
 
 // STRUCTS
 typedef struct brute_force_args{
@@ -29,10 +30,18 @@ int *local_progress;
 char **last_pass_tried;
 
 int main(int argc, char* argv[]){
-    if (argc != 4){
-        printf("Usage: %s <archive_path> <max_len> <threads>\n", argv[0]);
+    if (argc != 5){
+        printf("Usage: %s <archive_path> <max_len> <threads> <print_flag>\n", argv[0]);
         return 1;
     }
+    /*
+    print_flag:
+    0 - global progress
+    1 - global progress and local progress with last password tried
+
+    */
+    int print_flag = atoi(argv[4]);
+
     char *archive_path = argv[1];
     int max_len = atoi(argv[2]);
     int threads = atoi(argv[3]);
@@ -65,8 +74,24 @@ int main(int argc, char* argv[]){
         args[i].thread_id = i;
         pthread_create(&thread_ids[i], &attr, brute_force_from_to, &args[i]);
     }
- 
-    // print starting and ending passwords of each thread
+    
+    if (print_flag >1){
+        printf("Invalid print_flag\n");
+        return 1;
+    }
+    print_progress(max_iterations, threads, print_flag);
+
+    for (int i = 0; i < threads; i++){
+        pthread_join(thread_ids[i], NULL);
+    }
+
+    printf("No password found\n");
+    return 0;
+}
+
+void print_progress(int max_iterations, int threads, int flag){
+// print starting and ending passwords of each thread
+    int iters_per_thread = max_iterations / threads;
     while (global_progress < 100 )
     {
         system("clear");
@@ -76,18 +101,14 @@ int main(int argc, char* argv[]){
         }
         global_progress = global_progress / (double) max_iterations * 100;
         printf("Global progress: %.2f%%\n", global_progress);
-        for (int i = 0; i < threads; i++){
-            printf("Thread %d progress: %.2f%%\n", i, (double) local_progress[i] / (double) (args[i].max_iterations) * 100);
-            printf("Last password tried: %s\n", last_pass_tried[i]);
-            // store password bla bla
+        if (flag==1) {
+            for (int i = 0; i < threads; i++){
+                printf("Thread %d progress: %.2f%%\n", i, (double) local_progress[i] / (double) (iters_per_thread) * 100);
+                printf("Last password tried: %s\n", last_pass_tried[i]);
+            }
         }
-        sleep(2);
+        sleep(1);
     }
-    for (int i = 0; i < threads; i++){
-        pthread_join(thread_ids[i], NULL);
-    }
-    printf("No password found\n");
-    return 0;
 }
 
 void *brute_force_from_to(void *args){
@@ -109,7 +130,7 @@ void *brute_force_from_to(void *args){
             exit(0);
         }
     }
-    printf("Thread %d finished, last password tryed:%s\n", args_struct->thread_id, password);
+    // printf("Thread %d finished, last password tryed:%s\n", args_struct->thread_id, password);
     pthread_exit(NULL);
 }
 
@@ -125,6 +146,6 @@ int store_password(char* password){
     write(fd, password, strlen(password));
     close(fd);
     // remove tmp folder with all content
-    system("rm -rf -f tmp");
+    // system("rm -rf -f tmp"); // cannot remove dir
     return 0;
 }

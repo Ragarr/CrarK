@@ -3,6 +3,7 @@
         "*.rmd": "rmd",
         "fcntl.h": "c",
         "password_utils.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "dirent.h": "c"
     }
 }
