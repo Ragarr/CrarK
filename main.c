@@ -11,6 +11,7 @@
 
 // PROTOTYPES
 void *brute_force_from_to(void *args);
+int store_password(char* password);
 
 // STRUCTS
 typedef struct brute_force_args{
@@ -40,7 +41,8 @@ int main(int argc, char* argv[]){
     pthread_attr_setdetachstate(&attr, PTHREAD_EXPLICIT_SCHED);
     pthread_attr_setschedpolicy(&attr, SCHED_RR);
 
-
+    // create tmp folder
+    mkdir("tmp", 0777);
 
     last_pass_tried = (char**) malloc(sizeof(char*) * threads);
     for (int i = 0; i < threads; i++){
@@ -103,6 +105,7 @@ void *brute_force_from_to(void *args){
         last_pass_tried[args_struct->thread_id] = password;
         if (r == 1){
             printf("Thread %d found password: %s\n", args_struct->thread_id, password);
+            store_password(password);
             exit(0);
         }
     }
@@ -110,3 +113,18 @@ void *brute_force_from_to(void *args){
     pthread_exit(NULL);
 }
 
+
+int store_password(char* password){
+    // create file output
+    int fd;
+    fd = open("password.txt", O_WRONLY | O_CREAT | O_TRUNC, 0777);
+    if (fd < 0){
+        printf("Error creating file\n");
+        return 1;
+    }
+    write(fd, password, strlen(password));
+    close(fd);
+    // remove tmp folder with all content
+    system("rm -rf -f tmp");
+    return 0;
+}
