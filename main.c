@@ -77,6 +77,7 @@ int main(int argc, char* argv[]){
         for (int i = 0; i < threads; i++){
             printf("Thread %d progress: %.2f%%\n", i, (double) local_progress[i] / (double) (args[i].max_iterations) * 100);
             printf("Last password tried: %s\n", last_pass_tried[i]);
+            // store password bla bla
         }
         sleep(2);
     }
