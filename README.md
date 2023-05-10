@@ -4,16 +4,16 @@ Programed in C.
 
 ## Usage
 ```
-usage: crack <file> 
+usage: ./CrarK <file> <max_pass_len> <threads>
 ```
 ## Installation
 ```
 git clone https://github.com/Ragarr/CrarK
 cd CrarK
-gcc -o CrarK main.c -larchive
-
+sudo apt-get install libarchive-dev
+make
 ```
 ## Example
 ```
-./crack test.rar
+./crack test.zip 4 4
 ```
