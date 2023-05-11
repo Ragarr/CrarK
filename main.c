@@ -35,8 +35,9 @@ char **last_pass_tried;
 void debug(){
     // char* password;
     char* password2;
+    password2=get_password_from_iteration_1(0, 3);
     for (int i=0; i< pow(26,3); i++){
-        password2=get_password_from_iteration_1(i, 3);
+        password2 = generate_next_password_1(password2);
         printf("pass%d: %s\n",i, password2);
     }
     

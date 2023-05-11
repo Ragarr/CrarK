@@ -139,6 +139,54 @@ char* generate_next_password_0(char* password){
 }
 
 char* generate_next_password_1(char* password){
+     /*
+    ascii chars: 33 - 126 (!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~)
+    pasword gets generated like this:
+    gets the full length of:
+    1º lowercase letter (from ascii 97 to 122 so +64)
+    2º uppercase & lowercaseletter (from ascii (65 to 90) and (97 to 122) so )
+    3º uppercase & lowercase letter & number (from ascii (65 to 90) and (97 to 122) and (48 to 57))
+    4º uppercase & lowercase letter & number & symbol (from ascii 33 to 126)
+    */
+    if (password == NULL){
+        password = (char*) malloc(sizeof(char) * 2);
+        password[0] = 'a'; // equvale a get_char_from_index(0+64)
+        password[1] = '\0';
+        return password;
+    }
+    int password_size = strlen(password);
+    int last_char_index = get_char_index(password[password_size - 1]);
+    char last_char = password[password_size - 1];
+    // vamos a trabajar con minusculas de momento
+    if (last_char=='z'){
+        // hay que añadir un caracter mas al password
+        // y aumentar el ultimo caracter
+        // aumentar en uno el caracter anterior
+        // si el caracter anterior es una z, hay que aumentar el caracter anterior
+        // asi hasta que no sea una z
+        for (int i = password_size - 1; i >= 0; i--){
+            if (password[i] == 'z'){
+                password[i] = 'a';
+            }
+            else{
+                password[i] = get_char_from_index(get_char_index(password[i]) + 1);
+                return password;
+            }
+        }
+        // si llegamos aqui, hay que añadir un caracter mas al password
+        password = (char*) realloc(password, sizeof(char) * (password_size + 2));
+        password[password_size + 1] = '\0';
+        password[0] = 'a';
+        for (int i = 1; i < password_size + 1; i++){
+            password[i] = 'a';
+        }
+        return password;
+    }
+    else{
+        // solo hay que aumentar el ultimo caracter
+        password[password_size - 1] = get_char_from_index(get_char_index(password[password_size - 1]) + 1);
+        return password;
+    }
     return password;
 }
 
