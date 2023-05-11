@@ -9,7 +9,7 @@
 # include <pthread.h>
 # include <math.h>
 
-char *get_password_from_iteration(int n){
+char *get_password_from_iteration_0(int n){
     int base = 93;
     int i = 0;
     int n2 = n;
@@ -36,7 +36,65 @@ char *get_password_from_iteration(int n){
     
 }
 
-char* generate_next_password(char* password){
+char *get_password_from_iteration_1(int n, int max_length){
+    /*
+    ascii chars: 33 - 126 (!"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~)
+    pasword gets generated like this:
+    gets the full length of:
+    1º lowercase letter (from ascii 97 to 122))
+    2º uppercase & lowercaseletter (from ascii (65 to 90) and (97 to 122))
+    3º uppercase & lowercase letter & number (from ascii (65 to 90) and (97 to 122) and (48 to 57))
+    4º uppercase & lowercase letter & number & symbol (from ascii 33 to 126)
+    */
+    int base = 93; // 126 - 33 + 1
+    int i = 0; // number of chars in the password
+    int n2 = n; // n2 is used to calculate the number of chars in the password
+    if (n==0){
+        return NULL;
+    }
+    while (n2 > 0){
+        n2 = n2 / base; // divide n2 by the base to get the number of chars in the password
+        i++;
+    }
+
+    int undercase_passwords = (int) pow(26, max_length);    // number of passwords with only lowercase letters
+    int uppercase_passwords = (int) pow(52, max_length);    // number of passwords with only uppercase and lowercase letters
+    int number_passwords = (int) pow(62, max_length);       // number of passwords with only uppercase and lowercase letters and numbers
+    int symbol_passwords = (int) pow(93, max_length);       // number of passwords with uppercase and lowercase letters and numbers and symbols
+
+
+    // if n is smaller than the number of passwords with only lowercase letters, 
+    // then the password will only have lowercase letters
+    // lowecase letters in ascii are from 97 to 122 (26 letters)
+    
+    
+
+    char* password;
+    char* aux_pass = (char*) malloc(sizeof(char) * (max_length + 1));
+    int remainder;
+    if (n < undercase_passwords){
+        // calculate len of password
+        int password_len = 0;
+        int n2 = n;
+        while (n2 > 0){
+            remainder = (n2 % 26);
+            n2 = (int)n2 / 26;
+            password_len++;
+            aux_pass[max_length - password_len] = get_char_from_index(remainder + 64); // 64 = 97 - 33
+        }
+        password = (char*) malloc(sizeof(char) * (password_len + 1));
+        for (int i = 0; i < password_len; i++){
+            password[i] = aux_pass[max_length - password_len + i];
+        }
+        password[password_len] = '\0';
+        free(aux_pass);
+        return password;
+    }
+    return NULL;
+
+}
+
+char* generate_next_password_0(char* password){
     if (password == NULL){
         password = (char*) malloc(sizeof(char) * 2);
         password[0] = get_char_from_index(0);
@@ -80,6 +138,9 @@ char* generate_next_password(char* password){
     }
 }
 
+char* generate_next_password_1(char* password){
+    return password;
+}
 
 int verify_zip_pass(const char* archive_path, const char *dest_path, const char* password){
     // Create a new archive struct
